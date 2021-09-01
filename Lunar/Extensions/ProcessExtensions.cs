@@ -11,17 +11,18 @@ namespace Lunar.Extensions
 {
     internal static class ProcessExtensions
     {
-        internal static IntPtr AllocateBuffer(this Process process, int size, ProtectionType protectionType)
+        internal static IntPtr AllocateBuffer(this Process process, IntPtr address, int size, ProtectionType protectionType)
         {
-            var address = Kernel32.VirtualAllocEx(process.SafeHandle, IntPtr.Zero, size, AllocationType.Commit | AllocationType.Reserve, protectionType);
+            var outAddress = Kernel32.VirtualAllocEx(process.SafeHandle, address, size, AllocationType.Commit | AllocationType.Reserve, protectionType);
 
-            if (address == IntPtr.Zero)
+            if (outAddress == IntPtr.Zero)
             {
-                throw new Win32Exception();
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
-            return address;
+            return outAddress;
         }
+        internal static IntPtr AllocateBuffer(this Process process, int size, ProtectionType protectionType) => process.AllocateBuffer(IntPtr.Zero, size, protectionType);
 
         internal static void CreateThread(this Process process, IntPtr address)
         {
@@ -36,7 +37,7 @@ namespace Lunar.Extensions
             {
                 if (Kernel32.WaitForSingleObject(threadHandle, int.MaxValue) == -1)
                 {
-                    throw new Win32Exception();
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
                 }
             }
         }
@@ -45,7 +46,7 @@ namespace Lunar.Extensions
         {
             if (!Kernel32.VirtualFreeEx(process.SafeHandle, address, 0, FreeType.Release))
             {
-                throw new Win32Exception();
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
         }
 
@@ -58,7 +59,7 @@ namespace Lunar.Extensions
 
             if (!Kernel32.IsWow64Process(process.SafeHandle, out var isWow64Process))
             {
-                throw new Win32Exception();
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
             return isWow64Process ? Architecture.X86 : Architecture.X64;
@@ -68,7 +69,7 @@ namespace Lunar.Extensions
         {
             if (!Kernel32.VirtualProtectEx(process.SafeHandle, address, size, protectionType, out var oldProtectionType))
             {
-                throw new Win32Exception();
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
             return oldProtectionType;
@@ -80,7 +81,7 @@ namespace Lunar.Extensions
 
             if (!Kernel32.ReadProcessMemory(process.SafeHandle, address, out spanBytes[0], spanBytes.Length, IntPtr.Zero))
             {
-                throw new Win32Exception();
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
             return MemoryMarshal.Cast<byte, T>(spanBytes);
@@ -92,7 +93,7 @@ namespace Lunar.Extensions
 
             if (!Kernel32.ReadProcessMemory(process.SafeHandle, address, out structBytes[0], structBytes.Length, IntPtr.Zero))
             {
-                throw new Win32Exception();
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
 
             return MemoryMarshal.Read<T>(structBytes);
@@ -107,7 +108,7 @@ namespace Lunar.Extensions
             {
                 if (!Kernel32.WriteProcessMemory(process.SafeHandle, address, in spanBytes[0], spanBytes.Length, IntPtr.Zero))
                 {
-                    throw new Win32Exception();
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
                 }
             }
 
@@ -126,7 +127,7 @@ namespace Lunar.Extensions
             {
                 if (!Kernel32.WriteProcessMemory(process.SafeHandle, address, in stringBytes[0], stringBytes.Length, IntPtr.Zero))
                 {
-                    throw new Win32Exception();
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
                 }
             }
 
@@ -145,7 +146,7 @@ namespace Lunar.Extensions
             {
                 if (!Kernel32.WriteProcessMemory(process.SafeHandle, address, in structBytes[0], structBytes.Length, IntPtr.Zero))
                 {
-                    throw new Win32Exception();
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
                 }
             }
 

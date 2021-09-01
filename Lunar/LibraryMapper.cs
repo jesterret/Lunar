@@ -28,6 +28,10 @@ namespace Lunar
         /// The current base address of the DLL in the process
         /// </summary>
         public IntPtr DllBaseAddress { get; private set; }
+        /// <summary>
+        /// Size of the immage of the DLL mapped in the process
+        /// </summary>
+        public int ImageSize { get; private set; }
 
         private readonly Memory<byte> _dllBytes;
         private readonly FileResolver _fileResolver;
@@ -92,14 +96,15 @@ namespace Lunar
         /// <summary>
         /// Maps the DLL into the process
         /// </summary>
-        public void MapLibrary()
+        public void MapLibrary(IntPtr address)
         {
             if (DllBaseAddress != IntPtr.Zero)
             {
                 return;
             }
 
-            DllBaseAddress = _processContext.Process.AllocateBuffer(_peImage.Headers.PEHeader!.SizeOfImage, ProtectionType.ReadOnly);
+            ImageSize = _peImage.Headers.PEHeader!.SizeOfImage;
+            DllBaseAddress = _processContext.Process.AllocateBuffer(address, ImageSize, ProtectionType.ReadOnly);
 
             try
             {
@@ -148,10 +153,12 @@ namespace Lunar
             {
                 Executor.IgnoreExceptions(() => _processContext.Process.FreeBuffer(DllBaseAddress));
                 DllBaseAddress = IntPtr.Zero;
+                ImageSize = 0;
                 throw;
             }
         }
 
+        public void MapLibrary() => MapLibrary(IntPtr.Zero);
         /// <summary>
         /// Unmaps the DLL from the process
         /// </summary>
